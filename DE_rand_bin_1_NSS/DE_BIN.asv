@@ -1,0 +1,214 @@
+%
+% Copyright (c) 2015, Yarpiz (www.yarpiz.com)
+% All rights reserved. Please read the "license.txt" for license terms.
+%
+% Project Code: YPEA102
+% Project Title: Implementation of Particle Swarm Optimization in MATLAB
+% Publisher: Yarpiz (www.yarpiz.com)
+% 
+% Developer: S. Mostapha Kalami Heris (Member of Yarpiz Team)
+% 
+% Contact Info: sm.kalami@gmail.com, info@yarpiz.com
+%改进的粒子群优化算法
+
+clc;
+clear;
+close all;
+
+%% Problem Definition
+% data=importdata('support_data/rastrigin_shift_func_data.txt');
+% data=data(1:100);
+% bais=-330;
+% CostFunction=@(x) rastrigin_shift(x,data);        % Cost Function
+MaxIt=3000;      % Maximum Number of Iterations
+nVar=30;            % Number of Decision Variables
+% fn=8;
+
+
+VarMin=-100;         % Lower Bound of Variables
+VarMax= 100;         % Upper Bound of Variable
+VarSize=[nVar 1];   % Size of Decision Variables Matrix
+nPop=100;        % Population Size (Swarm Size)
+
+optimal=[-1400,-1300,-1200,-1100,-1000,-900,-800,-700,-600,-500,-400,-300,-200,-100,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400];
+for problem_num=8:8
+    result=[];
+    for jj=1:25
+CostFunction=@(x) cec13_func(x,problem_num); 
+bais=optimal(problem_num);
+% bais=100*problem_num;
+
+Position=[];
+Cost=[];
+Count=[];
+particle_best_Cost=[];
+particle_best_Position=[];
+Best_Cost=[];
+Best_Position=[];
+SecondBest_Cost=[];
+SecondBest_Position=[];
+
+
+
+GlobalBest_Cost=inf;
+
+particle_used_flag=zeros(nPop,1);
+for i=1:nPop
+    
+    % Initialize Position
+    Position(:,i)=unifrnd(VarMin,VarMax,VarSize);
+%     Count(i)=0;
+    % Evaluation
+    Cost(i)=CostFunction(Position(:,i));
+    
+%      Best_Cost(i)=Cost(i);
+%      Best_Position(:,i)=Position(:,i);
+%      
+%      SecondBest_Cost(i)=inf;
+%      SecondBest_Position(:,i)=Position(:,i);
+%     
+% 
+%      particle_best_Cost(i)=Cost(i);
+%      particle_best_Position(:,i)=Position(:,i);
+%      
+%      previous_best_cost(i)=Cost(i);
+%      previous_best_position(:,i)=Position(:,i);
+    % Update Global Best
+    if Cost(i)<GlobalBest_Cost 
+        GlobalBest_Cost=Cost(i);   
+    end
+    
+    
+end
+
+BestCost=zeros(MaxIt,1);
+
+%% PSO Main Loop
+
+H=nPop;
+MFC=zeros(H,2);
+MFC(:,1)=0.5;
+MFC(:,2)=0.5;
+k=1;
+A=[];
+A_Cost=[];
+SP=Position;
+fSP=Cost;
+pop_position=zeros(nVar,nPop);
+p_F_C=zeros(nPop,2);
+% min_p=2/nPop;
+% max_p=0.2;
+p=0.05;
+c=0.1;
+iSP = 1;
+uc=0.5;
+uf=0.5;
+for it=1:MaxIt
+        
+    sc=[];
+    sf=[];
+    wk=[];
+    
+    for i=1:nPop
+         
+       
+         r1_index=unidrnd(nPop);
+         while r1_index==i
+             r1_index=unidrnd(nPop);
+         end
+
+         r2_index=unidrnd(nPop);
+         while r2_index==r1_index  || r2_index==i
+             r2_index=unidrnd(nPop);
+         end
+         
+         r3_index=unidrnd(nPop);
+         while r3_index==r1_index  ||r3_index==r2_index|| r3_index==i
+             r3_index=unidrnd(nPop);
+         end 
+        xu=Position(:,r1_index)+0.7*(Position(:,r2_index)-Position(:,r3_index));
+
+       
+       
+        xc=cross(xu,Position(:,i),0.5);
+
+
+        less_cost=find(xc<VarMin);
+        xc(less_cost,1)=(Position(less_cost,i)+VarMin)/2;
+        larger_cost=find(xc>VarMax);
+        xc(larger_cost,1)=(Position(larger_cost,i)+VarMax)/2;
+
+        pop_position(:,i)=xc;
+
+          
+    end
+    
+    pop_cost=CostFunction(pop_position);
+
+    for i=1:nPop
+
+
+        
+       
+        if pop_cost(i)<Cost(i)
+            
+
+            
+            Position(:,i)=pop_position(:,i);
+            Cost(i)=pop_cost(i);
+            
+        end
+        
+        %             Update Global Best
+        if Cost(i)<GlobalBest_Cost
+            
+            GlobalBest_Cost=Cost(i);
+            
+        end
+    end
+    
+   
+    
+    
+    if length(sc)>0
+%         wk=wk/(sum(wk));
+
+        uc=(1-c)*uc+c*mean(sc);
+        uf=(1-c)*uf+c*(sum(sf.^2)/sum(sf));
+%         uc_temp=sum(sc.*wk/sum(wk));
+        
+    end
+
+    
+   
+ 
+    BestCost(it)=GlobalBest_Cost;
+    
+    disp(['Iteration ' num2str(it) ': Best Cost = ' num2str(BestCost(it)-bais)]);
+    
+    
+
+%     rk=rk-(max_rk-min_rk)/MaxIt;
+    if BestCost(it)-bais<10^(-8)
+        GlobalBest_Cost=bais;
+        break;
+    end
+end
+% if GlobalBest_Cost-bais>0.1
+%     break;
+% end
+% BestSol = GlobalBest;
+result=[result;GlobalBest_Cost-bais];
+    end
+% str1=strcat('Sheet',num2str(problem_num));
+% xlswrite('result\shade_dc_nosp.xlsx',result,str1);    
+end
+
+%% Results
+
+% figure;
+% %plot(BestCost,'LineWidth',2);
+% semilogy(BestCost,'LineWidth',2);
+% xlabel('Iteration');
+% ylabel('Best Cost');
+% grid on;
